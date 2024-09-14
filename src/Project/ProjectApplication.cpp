@@ -98,29 +98,82 @@ void ProjectApplication::Update(float deltaTime)
 
 void ProjectApplication::RenderScene([[maybe_unused]] float deltaTime)
 {
-    const auto projection = glm::perspective(glm::radians(80.0f), 1920.0f / 1080.0f, 0.1f, 256.0f);
-    const auto view = glm::lookAt(
-        glm::vec3(3 * std::cos(glfwGetTime() / 4), 2, -3 * std::sin(glfwGetTime() / 4)),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 1, 0));
+    // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Use the shader program
     glUseProgram(_shaderProgram);
+
+    // Set the resolution uniform (assuming location 0)
+    int resolutionLocation = glGetUniformLocation(_shaderProgram, "u_resolution");
+    glUniform2f(resolutionLocation, 1920.0f, 1080.0f);
+
+    // Set the time uniform (assuming location 1)
+    int timeLocation = glGetUniformLocation(_shaderProgram, "u_time");
+    glUniform1f(timeLocation, _elapsedTime);
+
+    int scrollLocation = glGetUniformLocation(_shaderProgram, "u_scroll");
+    glUniform1f(scrollLocation, 0.0f);
+
+    int camposLocation = glGetUniformLocation(_shaderProgram, "u_campos");
+    glUniform3f(camposLocation, 0.0f, 0.0f, 0.0f);
+
+    int camTargetLocation = glGetUniformLocation(_shaderProgram, "u_camTarget");
+    glUniform3f(camTargetLocation, 0.0f, 0.0f, 0.0f);
+
+    int flashlightLocation = glGetUniformLocation(_shaderProgram, "u_flashlight");
+    glUniform3f(flashlightLocation, 0.0f, 0.0f, 0.0f);
+
+    int renderModeLocation = glGetUniformLocation(_shaderProgram, "u_renderMode");
+    glUniform1i(renderModeLocation, 0);
+
+    // Render a full-screen quad
+    glBindVertexArray(_quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+/*
+    // Set up the projection matrix (perspective projection)
+    const auto projection = glm::perspective(glm::radians(80.0f), 1920.0f / 1080.0f, 0.1f, 256.0f);
+
+    // Set up the view matrix (camera position and orientation)
+    const auto view = glm::lookAt(
+        glm::vec3(3 * std::cos(glfwGetTime() / 4), 2, -3 * std::sin(glfwGetTime() / 4)), // Camera position
+        glm::vec3(0, 0, 0), // Look at point
+        glm::vec3(0, 1, 0)); // Up vector
+
+    // Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Use the shader program
+    glUseProgram(_shaderProgram);
+
+    // Set the projection matrix uniform (location 0)
     glUniformMatrix4fv(0, 1, false, glm::value_ptr(projection));
+
+    // Set the view matrix uniform (location 1)
     glUniformMatrix4fv(1, 1, false, glm::value_ptr(view));
 
+    // Define the structure for object data
     struct ObjectData
     {
         uint32_t transformIndex;
         uint32_t baseColorIndex;
         uint32_t normalIndex;
     };
+
+    // Define the structure for batch data
     struct BatchData
     {
         std::vector<ObjectData> objects;
         std::vector<MeshIndirectInfo> indirectCommands;
     };
+
+    // Create vectors to hold batch data and texture handles
     std::vector<BatchData> objectBatches(_cubes.Commands.size());
     std::vector<std::set<uint32_t>> textureHandles(_cubes.Commands.size());
+
+    // Populate the batch data with object data and indirect commands
     for (const auto& mesh : _cubes.Meshes)
     {
         const auto index = mesh.BaseColorTexture / 16;
@@ -180,6 +233,8 @@ void ProjectApplication::RenderScene([[maybe_unused]] float deltaTime)
             sizeof(MeshIndirectInfo));
         index++;
     }
+*/
+
 }
 
 void ProjectApplication::RenderUI(float deltaTime)
@@ -199,6 +254,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
 {
     int success = false;
     char log[1024] = {};
+
     const auto vertexShaderSource = Slurp(vertexShaderFilePath);
     const char* vertexShaderSourcePtr = vertexShaderSource.c_str();
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -207,6 +263,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+        spdlog::error("Vertex shader compilation failed: {}", vertexShaderFilePath);
         glGetShaderInfoLog(vertexShader, 1024, nullptr, log);
         spdlog::error(log);
         return false;
@@ -220,6 +277,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+        spdlog::error("Fragment shader compilation failed: {}", fragmentShaderFilePath);
         glGetShaderInfoLog(fragmentShader, 1024, nullptr, log);
         spdlog::error(log);
         return false;
@@ -232,6 +290,7 @@ bool ProjectApplication::MakeShader(std::string_view vertexShaderFilePath, std::
     glGetProgramiv(_shaderProgram, GL_LINK_STATUS, &success);
     if (!success)
     {
+        spdlog::error("Shader program linking failed");
         glGetProgramInfoLog(_shaderProgram, 1024, nullptr, log);
         spdlog::error(log);
 

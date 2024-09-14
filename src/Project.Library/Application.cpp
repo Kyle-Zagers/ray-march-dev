@@ -82,7 +82,7 @@ bool Application::Initialize()
     constexpr int windowWidth = 1920;
     constexpr int windowHeight = 1080;
 
-    _windowHandle = glfwCreateWindow(windowWidth, windowHeight, "Project Template", nullptr, nullptr);
+    _windowHandle = glfwCreateWindow(windowWidth, windowHeight, "Ray Marching - Dev", nullptr, nullptr); // pass primaryMonitor to 4th parameter to make it fullscreen
     if (_windowHandle == nullptr)
     {
         spdlog::error("Glfw: Unable to create window");
@@ -102,6 +102,39 @@ bool Application::Initialize()
     ImGui_ImplGlfw_InitForOpenGL(_windowHandle, true);
     ImGui_ImplOpenGL3_Init();
     ImGui::StyleColorsDark();
+
+    // Full-screen quad setup
+    float quadVertices[] = {
+        // Positions   // TexCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    GLuint quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+    // Position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+    // TexCoord attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindVertexArray(0);
+
+    // Store the VAO and VBO in the class for later use
+    _quadVAO = quadVAO;
+    _quadVBO = quadVBO;
 
     return true;
 }

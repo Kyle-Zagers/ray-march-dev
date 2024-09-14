@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <glad/glad.h>
 
 struct GLFWwindow;
 
@@ -7,6 +8,8 @@ class Application
 {
 public:
     void Run();
+    GLuint _quadVAO = 0;
+    GLuint _quadVBO = 0;
 
 protected:
     void Close();
